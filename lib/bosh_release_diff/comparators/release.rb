@@ -1,9 +1,12 @@
+require "bosh_release_diff/memoized_function"
 require "bosh_release_diff/comparators/variations"
 require "bosh_release_diff/comparators/job"
 
 module BoshReleaseDiff::Comparators
   # Compares releases to dep manifests
   class Release
+    extend BoshReleaseDiff::MemoizedFunction
+
     def self.from(releases, manifests, logger)
       new(
         Variations.from(releases), 
@@ -32,5 +35,6 @@ module BoshReleaseDiff::Comparators
         Job.new(rel_jobs, dep_man_jobs, @logger)
       end
     end
+    memoized_function :job_results
   end
 end

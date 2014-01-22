@@ -1,3 +1,4 @@
+require "bosh_release_diff/memoized_function"
 require "bosh_release_diff/comparators/perms"
 require "bosh_release_diff/comparators/property"
 require "bosh_release_diff/comparators/package"
@@ -5,6 +6,8 @@ require "bosh_release_diff/comparators/package"
 module BoshReleaseDiff::Comparators
   # Compares release jobs to dep manifest jobs
   class Job
+    extend BoshReleaseDiff::MemoizedFunction
+
     def initialize(rel_jobs, dep_man_jobs, logger)
       @rel_jobs = rel_jobs
       @dep_man_jobs = dep_man_jobs
@@ -31,6 +34,7 @@ module BoshReleaseDiff::Comparators
         Property.new(rel_props, dep_man_props, @logger)
       end
     end
+    memoized_function :property_results
 
     def package_results
       names = @rel_jobs.extract(&:packages).map(&:name).uniq.sort
@@ -44,6 +48,7 @@ module BoshReleaseDiff::Comparators
         Package.new(packages, @logger)
       end
     end
+    memoized_function :package_results
 
     def any_changes?
       changes.any?(&:changed?)
