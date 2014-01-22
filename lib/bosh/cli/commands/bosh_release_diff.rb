@@ -12,6 +12,7 @@ module Bosh::Cli::Command
     desc  "diff multiple releases and optionally deployment manifests"
     option "--jobs JOBS",  "filter by job name; comma separated"
     option "--packages",   "show package information"
+    option "--changes",    "show only changes"
     option "--debug",      "show debug log"
     def release_diff(*file_paths)
       logger = Logger.new(options[:debug] ? STDOUT : "/dev/null")
@@ -21,6 +22,8 @@ module Bosh::Cli::Command
       # packages are an internal implementation of a release
       # which in theory should not be known about by release users.
       command.show_packages = !!options[:packages]
+      
+      command.show_changes = !!options[:changes]
 
       tar_paths   = file_paths.select { |p| p.end_with?(".tgz") }
       yml_paths   = file_paths.select { |p| p.end_with?(".yml") }

@@ -5,7 +5,7 @@ require "bosh_release_diff/comparators"
 
 module BoshReleaseDiff::Commands
   class DiffRelease
-    attr_accessor :show_packages
+    attr_accessor :show_packages, :show_changes
 
     def initialize(ui, logger)
       @ui = ui
@@ -47,12 +47,11 @@ module BoshReleaseDiff::Commands
       @ui.say("Jobs (aka job templates):")
       release_comparator.job_results.each do |job_result|
         if !jobs_filter.empty? && !jobs_filter.include?(job_result.name)
-          @logger.debug("Skipping job #{job_result.name}")
+          @logger.debug("Job #{job_result.name} filtered out")
           next
         end
 
-        @ui.say("- #{job_result.name}")
-        show_job_changes(job_result.changes)
+        show_job_result(job_result)
         show_property_results(job_result.property_results)
         show_package_results(job_result.package_results) if show_packages
         @ui.nl
@@ -66,18 +65,32 @@ module BoshReleaseDiff::Commands
 
     TICK = "∟ "
 
-    def show_job_changes(changes)
-      changes.each do |change, d|
+    def show_job_result(job_result)
+      @ui.say("- #{job_result.name}")
+      return if show_changes && !job_result.any_changes?
+
+      job_result.changes.each do |change, d|
         @ui.say("  #{" "*2*d}#{TICK}" + change.description(show_packages))
       end
       @ui.nl
     end
 
     def show_property_results(property_results)
-      @ui.say("  Properties: #{"none" if property_results.empty?}")
+      status = if property_results.empty?
+        "none"
+      elsif show_changes && property_results.none?(&:any_changes?)
+        "no changes"
+      end
+
+      @ui.say("  Properties: #{status}")
       last_i = property_results.size-1
 
       property_results.each.with_index do |property_result, i|
+        if show_changes && !property_result.any_changes?
+          @logger.debug("Property #{property_result.name} has no changes")
+          next
+        end
+
         desc = property_result.description
         @ui.say("  - #{property_result.name.make_yellow}#{" (#{desc})" if desc}")
 
@@ -88,13 +101,24 @@ module BoshReleaseDiff::Commands
         @ui.nl unless last_i == i
       end
 
-      @ui.nl if property_results.any? && show_packages
+      @ui.nl if !status && show_packages
     end
 
     def show_package_results(package_results)
-      @ui.say("  Packages: #{"none" if package_results.empty?}")
+      status = if package_results.empty?
+        "none"
+      elsif show_changes && package_results.none?(&:any_changes?)
+        "no changes"
+      end
+
+      @ui.say("  Packages: #{status}")
 
       package_results.each do |package_result|
+        if show_changes && !package_result.any_changes?
+          @logger.debug("Package #{package_result.name} has no changes")
+          next
+        end
+
         @ui.say("  - #{package_result.name}")
 
         package_result.changes.each do |change, d|

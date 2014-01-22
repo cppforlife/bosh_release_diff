@@ -45,34 +45,47 @@ module BoshReleaseDiff::Comparators
       end
     end
 
+    def any_changes?
+      changes.any?(&:changed?)
+    end
+
     def changes
       Perms.new([[@rel_jobs, ReleaseJobChange]])
     end
 
     class ReleaseJobChange
-      def initialize(current_job, index, prev_job, context)
-        @current_job = current_job
-        @index = index
+      def initialize(job, index, prev_job, context)
+        @job = job
         @prev_job = prev_job
+        @index = index
         @context = context
+      end
+
+      def changed?
+        if @prev_job && !@job
+          return true # removed
+        elsif !@prev_job && @job
+          return true unless @index.zero? # added
+        end
+        false
       end
 
       def description(show_packages)
         str = "[#{@context.find_kind_of('Release').contextual_name}] "
 
-        if @prev_job && @current_job
+        if @prev_job && @job
           str += "present"
-        elsif @prev_job && !@current_job
-          str += @index.zero? ? "not present" : "removed"
-        elsif !@prev_job && @current_job
+        elsif @prev_job && !@job
+          str += "removed"
+        elsif !@prev_job && @job
           str += @index.zero? ? "present" : "added"
-        else # !@prev_job && !@current_job
+        else # !@prev_job && !@job
           str += "not present"
         end
 
-        if @current_job
-          str += "; #{@current_job.properties.size} prop(s)"
-          str += ", #{@current_job.packages.size} package(s)" if show_packages
+        if @job
+          str += "; #{@job.properties.size} prop(s)"
+          str += ", #{@job.packages.size} package(s)" if show_packages
         end
 
         str
