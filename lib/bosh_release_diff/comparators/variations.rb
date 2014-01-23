@@ -16,15 +16,18 @@ module BoshReleaseDiff::Comparators
     end
 
     def extract(&blk)
-      @items.map(&blk).flatten
+      @items.compact.map(&blk).flatten
     end
 
     def break_down(&blk)
-      self.class.new(@items.map(&blk), self, nil)
+      safe_nils = lambda { |item| item ? blk.call(item) : nil }
+      self.class.new(@items.map(&safe_nils), self, nil)
     end
 
     def break_down_flat(&blk)
-      values = @items.map(&blk)
+      safe_nils = lambda { |item| item ? blk.call(item) : [] }
+      values = @items.map(&safe_nils)
+
       sizes = values.map { |v| v.size }
       parent_index = lambda { |child_index| 
         total = 0
