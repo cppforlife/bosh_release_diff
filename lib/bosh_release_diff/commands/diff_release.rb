@@ -2,13 +2,14 @@
 require "bosh_release_diff/release"
 require "bosh_release_diff/deployment_manifest"
 require "bosh_release_diff/comparators"
+require "bosh_release_diff/no_double_nl_ui"
 
 module BoshReleaseDiff::Commands
   class DiffRelease
     attr_accessor :show_packages, :show_changes
 
     def initialize(ui, logger)
-      @ui = ui
+      @ui = BoshReleaseDiff::NoDoubleNlUi.new(ui)
       @logger = logger
     end
 
@@ -98,7 +99,7 @@ module BoshReleaseDiff::Commands
           @ui.say("    #{" "*2*d}#{TICK}" + change.description)
         end
 
-        @ui.nl unless last_i == i
+        @ui.nl
       end
 
       @ui.nl if !status && show_packages
