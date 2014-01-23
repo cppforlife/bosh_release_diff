@@ -30,6 +30,12 @@ multiple versions of the same release tends to be more useful:
 bundle exec bosh diff release cf-147.tgz cf-148.tgz cf-149.tgz
 ```
 
+Focus only on the changes:
+
+```
+bundle exec bosh diff release cf-147.tgz cf-148.tgz --changes
+```
+
 Include one or more deployment manifests
 for easier cross referencing of properties:
 
@@ -41,7 +47,7 @@ Misc:
 
 ```
 bundle exec bosh diff release cf-147.tgz --debug
-bundle exec bosh diff release cf-147.tgz --jobs cloud_controller
+bundle exec bosh diff release cf-147.tgz --jobs cloud_controller,uaa
 bundle exec bosh diff release cf-147.tgz --packages
 ```
 
