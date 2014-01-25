@@ -21,7 +21,13 @@ module BoshReleaseDiff::Commands
       :package_removed,
     ].freeze
 
-    ALL = (META + JOB + PROPERTY + PACKAGE).freeze
+    DEP_MAN_PROPERTY = [
+      :dep_man_property_added,
+      :dep_man_property_removed,
+      :dep_man_property_value,
+    ].freeze
+
+    ALL = (META + JOB + PROPERTY + PACKAGE + DEP_MAN_PROPERTY).freeze
 
     def initialize(filter)
       raise ArgumentError, "filter must be an Array" unless filter.is_a?(Array)
