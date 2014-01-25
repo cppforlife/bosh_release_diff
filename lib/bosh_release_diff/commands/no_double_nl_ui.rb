@@ -1,4 +1,4 @@
-module BoshReleaseDiff
+module BoshReleaseDiff::Commands
   class NoDoubleNlUi
     def initialize(ui)
       @ui = ui

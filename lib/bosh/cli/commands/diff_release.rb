@@ -1,23 +1,26 @@
 require "logger"
+require "bosh_release_diff/commands/ui"
 require "bosh_release_diff/commands/diff_release"
 require "bosh_release_diff/commands/option_list_str"
 
 module Bosh::Cli::Command
-  class BoshReleaseDiff < Base
+  class DiffRelease < Base
+    C = ::BoshReleaseDiff::Commands
+
     def initialize(*args)
       super
-      @ui = Ui.new(self)
+      @ui = C::Ui.new(self)
     end
 
     usage "diff release"
     desc  "diff multiple releases and optionally deployment manifests"
-    option "--changes CHANGES",   ::BoshReleaseDiff::Commands::OptionListStr.new("show only changes", [:all] + ::BoshReleaseDiff::Commands::DiffRelease::ALL_CHANGES_FILTER).to_str
-    option "--jobs JOBS",         "filter by job name; comma separated"
+    option "--changes CHANGES",   C::OptionListStr.new("show only changes", [:all] + C::DiffRelease::ALL_CHANGES_FILTER).to_str
+    option "--jobs JOBS",         C::OptionListStr.new("show only jobs",    []).to_str
     option "--packages",          "show package information"
     option "--debug",             "show debug log"
     def release_diff(*file_paths)
       logger = Logger.new(options[:debug] ? STDOUT : "/dev/null")
-      command = ::BoshReleaseDiff::Commands::DiffRelease.new(@ui, logger)
+      command = C::DiffRelease.new(@ui, logger)
 
       # Package information is not shown by default because
       # packages are an internal implementation of a release
@@ -39,12 +42,6 @@ module Bosh::Cli::Command
     rescue ArgumentError => e
       logger.info("Caught ArgumentError #{e.inspect}\n#{e.backtrace}")
       raise
-    end
-
-    class Ui
-      def initialize(bosh); @bosh = bosh;     end
-      def say(*args);       @bosh.say(*args); end
-      def nl(*args);        @bosh.nl(*args);  end
     end
   end
 end

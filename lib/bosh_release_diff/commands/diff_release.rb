@@ -2,7 +2,7 @@
 require "bosh_release_diff/release"
 require "bosh_release_diff/deployment_manifest"
 require "bosh_release_diff/comparators"
-require "bosh_release_diff/no_double_nl_ui"
+require "bosh_release_diff/commands/no_double_nl_ui"
 
 module BoshReleaseDiff::Commands
   class DiffRelease
@@ -20,7 +20,7 @@ module BoshReleaseDiff::Commands
     attr_accessor :show_packages, :show_changes, :changes_filter
 
     def initialize(ui, logger)
-      @ui = BoshReleaseDiff::NoDoubleNlUi.new(ui)
+      @ui = NoDoubleNlUi.new(ui)
       @logger = logger
       @changes_filter = []
     end
