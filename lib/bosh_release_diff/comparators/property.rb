@@ -17,10 +17,6 @@ module BoshReleaseDiff::Comparators
       @rel_properties.shared_value(&:description)
     end
 
-    def any_changes?(filter)
-      changes.any? { |chs| chs.changes.any? { |cf| filter.include?(cf) } }
-    end
-
     def changes
       Perms.new([
         [@rel_properties,     ReleasePropertyChange], 

@@ -12,10 +12,6 @@ module BoshReleaseDiff::Comparators
       @packages.shared_value(&:name)
     end
 
-    def any_changes?(filter)
-      changes.any? { |chs| chs.changes.any? { |cf| filter.include?(cf) } }
-    end
-
     def changes
       Perms.new([[@packages, ReleasePackageChange]])
     end

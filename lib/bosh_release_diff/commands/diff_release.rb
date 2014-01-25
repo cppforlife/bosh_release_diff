@@ -6,31 +6,14 @@ require "bosh_release_diff/commands/no_double_nl_ui"
 
 module BoshReleaseDiff::Commands
   class DiffRelease
-    ALL_CHANGES_FILTER = [
-      :job_added,
-      :job_removed,
-      :package_added,
-      :package_removed,
-      :property_added,
-      :property_removed,
-      :property_default_presence,
-      :property_default_value,
-    ].freeze
-
-    attr_accessor :show_packages, :show_changes, :changes_filter
+    attr_accessor :changes_filter, :jobs_filter, :show_packages
 
     def initialize(ui, logger)
       @ui = NoDoubleNlUi.new(ui)
       @logger = logger
-      @changes_filter = []
     end
 
-    def changes_filter=(value)
-      raise ArgumentError, "value must be an Array" unless value.is_a?(Array)
-      @changes_filter = value.include?(:all) ? ALL_CHANGES_FILTER : value
-    end
-
-    def run(release_tar_paths, deployment_manifest_paths, jobs_filter)
+    def run(release_tar_paths, deployment_manifest_paths)
       @ui.nl
 
       @logger.debug("Reading releases")
@@ -64,7 +47,7 @@ module BoshReleaseDiff::Commands
 
       @ui.say("Jobs (aka job templates):")
       release_comparator.job_results.each do |job_result|
-        if !jobs_filter.empty? && !jobs_filter.include?(job_result.name)
+        if jobs_filter && !jobs_filter.matches?(job_result)
           @logger.debug("Job #{job_result.name} filtered out")
           next
         end
@@ -85,7 +68,7 @@ module BoshReleaseDiff::Commands
 
     def show_job_result(job_result)
       @ui.say("- #{job_result.name}")
-      return if show_changes && !job_result.any_changes?(changes_filter)
+      return if changes_filter && !changes_filter.any_changes?(job_result)
 
       job_result.changes.each do |change, d|
         @ui.say("  #{" "*2*d}#{TICK}" + change.description(show_packages))
@@ -96,15 +79,14 @@ module BoshReleaseDiff::Commands
     def show_property_results(property_results)
       status = if property_results.empty?
         "none"
-      elsif show_changes && property_results.none? { |pr| pr.any_changes?(changes_filter) }
+      elsif changes_filter && property_results.none? { |pr| changes_filter.any_changes?(pr) }
         "no changes"
       end
 
       @ui.say("  Properties: #{status}")
-      last_i = property_results.size-1
 
       property_results.each.with_index do |property_result, i|
-        if show_changes && !property_result.any_changes?(changes_filter)
+        if changes_filter && !changes_filter.any_changes?(property_result)
           @logger.debug("Property #{property_result.name} has no changes")
           next
         end
@@ -125,14 +107,14 @@ module BoshReleaseDiff::Commands
     def show_package_results(package_results)
       status = if package_results.empty?
         "none"
-      elsif show_changes && package_results.none? { |pr| pr.any_changes?(changes_filter) }
+      elsif changes_filter && package_results.none? { |pr| changes_filter.any_changes?(pr) }
         "no changes"
       end
 
       @ui.say("  Packages: #{status}")
 
       package_results.each do |package_result|
-        if show_changes && !package_result.any_changes?(changes_filter)
+        if changes_filter && !changes_filter.any_changes?(package_result)
           @logger.debug("Package #{package_result.name} has no changes")
           next
         end

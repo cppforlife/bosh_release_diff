@@ -45,10 +45,6 @@ module BoshReleaseDiff::Comparators
       end
     end
 
-    def any_changes?(filter)
-      changes.any? { |chs| chs.changes.any? { |cf| filter.include?(cf) } }
-    end
-
     def changes
       Perms.new([[@rel_jobs, ReleaseJobChange]])
     end
