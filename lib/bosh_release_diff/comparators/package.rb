@@ -12,8 +12,8 @@ module BoshReleaseDiff::Comparators
       @packages.shared_value(&:name)
     end
 
-    def any_changes?
-      changes.any?(&:changed?)
+    def any_changes?(filter)
+      changes.any? { |chs| chs.changes.any? { |cf| filter.include?(cf) } }
     end
 
     def changes
@@ -28,13 +28,14 @@ module BoshReleaseDiff::Comparators
         @context = context
       end
 
-      def changed?
+      def changes
+        changes = []
         if @prev_pkg && !@pkg
-          return true # removed
+          changes << :package_removed
         elsif !@prev_pkg && @pkg
-          return true unless @index.zero? # added
+          changes << :package_added unless @index.zero? # added
         end
-        false
+        changes
       end
 
       def description

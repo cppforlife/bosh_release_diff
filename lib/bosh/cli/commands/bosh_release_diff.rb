@@ -1,5 +1,6 @@
 require "logger"
 require "bosh_release_diff/commands/diff_release"
+require "bosh_release_diff/commands/option_list_str"
 
 module Bosh::Cli::Command
   class BoshReleaseDiff < Base
@@ -10,10 +11,10 @@ module Bosh::Cli::Command
 
     usage "diff release"
     desc  "diff multiple releases and optionally deployment manifests"
-    option "--jobs JOBS",  "filter by job name; comma separated"
-    option "--packages",   "show package information"
-    option "--changes",    "show only changes"
-    option "--debug",      "show debug log"
+    option "--changes CHANGES",   ::BoshReleaseDiff::Commands::OptionListStr.new("show only changes", [:all] + ::BoshReleaseDiff::Commands::DiffRelease::ALL_CHANGES_FILTER).to_str
+    option "--jobs JOBS",         "filter by job name; comma separated"
+    option "--packages",          "show package information"
+    option "--debug",             "show debug log"
     def release_diff(*file_paths)
       logger = Logger.new(options[:debug] ? STDOUT : "/dev/null")
       command = ::BoshReleaseDiff::Commands::DiffRelease.new(@ui, logger)
@@ -22,12 +23,15 @@ module Bosh::Cli::Command
       # packages are an internal implementation of a release
       # which in theory should not be known about by release users.
       command.show_packages = !!options[:packages]
-      
-      command.show_changes = !!options[:changes]
+
+      if (changes = options[:changes].to_s.split(",")).any?
+        command.show_changes = true
+        command.changes_filter = changes.map(&:to_sym)
+      end
 
       tar_paths   = file_paths.select { |p| p.end_with?(".tgz") }
       yml_paths   = file_paths.select { |p| p.end_with?(".yml") }
-      jobs_filter = options[:jobs] ? options[:jobs].split(",") : []
+      jobs_filter = options[:jobs].to_s.split(",")
       command.run(tar_paths, yml_paths, jobs_filter)
 
     # Unfortunetly BOSH cli swallows ArgumentError

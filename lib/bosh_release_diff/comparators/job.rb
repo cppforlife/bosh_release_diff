@@ -45,8 +45,8 @@ module BoshReleaseDiff::Comparators
       end
     end
 
-    def any_changes?
-      changes.any?(&:changed?)
+    def any_changes?(filter)
+      changes.any? { |chs| chs.changes.any? { |cf| filter.include?(cf) } }
     end
 
     def changes
@@ -61,13 +61,14 @@ module BoshReleaseDiff::Comparators
         @context = context
       end
 
-      def changed?
+      def changes
+        changes = []
         if @prev_job && !@job
-          return true # removed
+          changes << :job_removed
         elsif !@prev_job && @job
-          return true unless @index.zero? # added
+          changes << :job_added unless @index.zero?
         end
-        false
+        changes
       end
 
       def description(show_packages)

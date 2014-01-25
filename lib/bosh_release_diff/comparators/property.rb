@@ -17,8 +17,8 @@ module BoshReleaseDiff::Comparators
       @rel_properties.shared_value(&:description)
     end
 
-    def any_changes?
-      changes.any?(&:changed?)
+    def any_changes?(filter)
+      changes.any? { |chs| chs.changes.any? { |cf| filter.include?(cf) } }
     end
 
     def changes
@@ -38,24 +38,26 @@ module BoshReleaseDiff::Comparators
 
       # Considered changed when release property is 
       # removed/added or its default value does not match.
-      def changed?
-        changed = false
+      def changes
+        changes = []
 
         if @prev_rel_prop && !@rel_prop
-          changed = true # removed
+          changes << :property_removed
         elsif !@prev_rel_prop && @rel_prop
-          changed = true unless @index.zero? # added
+          changes << :property_added unless @index.zero?
         end
 
         if (a = @prev_rel_prop) && (b = @rel_prop)
           if a.has_default_value? != b.has_default_value?
-            changed = true # presence of default
+            changes << :property_default_presence
           elsif a.has_default_value? # both a&b have default values
-            changed = (a.default_value != b.default_value) # default value
+            if (a.default_value != b.default_value)
+              changes << :property_default_value
+            end
           end
         end
 
-        changed
+        changes
       end
 
       def description
@@ -97,20 +99,20 @@ module BoshReleaseDiff::Comparators
 
       # Considered changed when dep manifest property is 
       # removed/added or its value does not match.
-      def changed?
-        changed = false
+      def changes
+        changes = []
 
         if @prev_dep_man_prop && !@dep_man_prop
-          changed = true # removed
+          changes << :dep_man_property_removed
         elsif !@prev_dep_man_prop && @dep_man_prop
-          changed = true unless @index.zero? # added
+          changes << :dep_man_property_added unless @index.zero?
         end
 
         if (a = @prev_dep_man_prop) && (b = @dep_man_prop)
-          changed = true if a.value != b.value # value
+          changes << :dep_man_property_value if a.value != b.value
         end
 
-        changed
+        changes
       end
 
       def description

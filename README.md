@@ -33,7 +33,7 @@ bundle exec bosh diff release cf-147.tgz cf-148.tgz cf-149.tgz
 Focus only on the changes:
 
 ```
-bundle exec bosh diff release cf-147.tgz cf-148.tgz --changes
+bundle exec bosh diff release cf-147.tgz cf-148.tgz --changes job_added,property_added
 ```
 
 Include one or more deployment manifests
