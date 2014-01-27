@@ -6,7 +6,7 @@ require "bosh_release_diff/commands/no_double_nl_ui"
 
 module BoshReleaseDiff::Commands
   class DiffRelease
-    attr_accessor :changes_filter, :jobs_filter, :show_packages
+    attr_accessor :comparator_filter, :show_packages
 
     def initialize(ui, logger)
       @ui = NoDoubleNlUi.new(ui)
@@ -47,15 +47,12 @@ module BoshReleaseDiff::Commands
 
       @ui.say("Jobs (aka job templates):")
       release_comparator.job_results.each do |job_result|
-        if jobs_filter && !jobs_filter.matches?(job_result)
-          @logger.debug("Job #{job_result.name} filtered out")
+        if !comparator_filter.matches?(job_result)
+          @logger.debug("Job #{job_result.name} does not match")
           next
         end
 
         show_job_result(job_result)
-        show_property_results(job_result.property_results)
-        show_package_results(job_result.package_results) if show_packages
-        @ui.nl
       end
 
     ensure
@@ -64,66 +61,75 @@ module BoshReleaseDiff::Commands
 
     private
 
-    TICK = "∟ "
-
     def show_job_result(job_result)
       @ui.say("- #{job_result.name}")
-      return if changes_filter && !changes_filter.any_changes?(job_result)
 
       job_result.changes.each do |change, d|
-        @ui.say("  #{" "*2*d}#{TICK}" + change.description(show_packages))
+        @ui.say("  #{" "*2*d}#{ComparatorPresenter::TICK}" + change.description(show_packages))
       end
+
+      @ui.nl
+
+      presenter = ComparatorPresenter.new(@ui, comparator_filter, @logger)
+
+      presenter.present(job_result.property_results, {
+        title: "Properties",
+        title_highlight: true,
+        has_description: true,
+      })
+
+      presenter.present(job_result.package_results, {
+        title: "Packages",
+        title_highlight: false,
+        has_description: false,
+      }) if show_packages
+
       @ui.nl
     end
 
-    def show_property_results(property_results)
-      status = if property_results.empty?
-        "none"
-      elsif changes_filter && property_results.none? { |pr| changes_filter.any_changes?(pr) }
-        "no changes"
+    class ComparatorPresenter
+      TICK = "∟ "
+
+      def initialize(ui, comparator_filter, logger)
+        @ui = ui
+        @comparator_filter = comparator_filter
+        @logger = logger
       end
 
-      @ui.say("  Properties: #{status}")
-
-      property_results.each.with_index do |property_result, i|
-        if changes_filter && !changes_filter.any_changes?(property_result)
-          @logger.debug("Property #{property_result.name} has no changes")
-          next
+      def present(comparator, opts)
+        if comparator.empty?
+          @ui.say("  #{opts.fetch(:title)}: none")
+          return
         end
 
-        desc = property_result.description
-        @ui.say("  - #{property_result.name.make_yellow}#{" (#{desc})" if desc}")
+        has_changes = false
 
-        property_result.changes.each do |change, d|
-          @ui.say("    #{" "*2*d}#{TICK}" + change.description)
+        comparator.each do |result|
+          if !@comparator_filter.matches?(result)
+            @logger.debug("#{opts.fetch(:title)} #{result.name} does not match")
+            next
+          elsif !has_changes
+            has_changes = true
+            @ui.say("  #{opts.fetch(:title)}:")
+          end
+
+          name = result.name
+          name = name.make_yellow   if opts.fetch(:title_highlight)
+          desc = result.description if opts.fetch(:has_description)
+          @ui.say("  - #{name}#{" (#{desc})" if desc}")
+
+          result.changes.each do |change, d|
+            @ui.say("    #{" "*2*d}#{TICK}" + change.description)
+          end
+
+          @ui.nl
+        end
+
+        if !has_changes
+          @ui.say("  #{opts.fetch(:title)}: no changes")
         end
 
         @ui.nl
-      end
-
-      @ui.nl if !status && show_packages
-    end
-
-    def show_package_results(package_results)
-      status = if package_results.empty?
-        "none"
-      elsif changes_filter && package_results.none? { |pr| changes_filter.any_changes?(pr) }
-        "no changes"
-      end
-
-      @ui.say("  Packages: #{status}")
-
-      package_results.each do |package_result|
-        if changes_filter && !changes_filter.any_changes?(package_result)
-          @logger.debug("Package #{package_result.name} has no changes")
-          next
-        end
-
-        @ui.say("  - #{package_result.name}")
-
-        package_result.changes.each do |change, d|
-          @ui.say("    #{" "*2*d}#{TICK}" + change.description)
-        end
       end
     end
   end

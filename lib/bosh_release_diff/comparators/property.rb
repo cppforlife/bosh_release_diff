@@ -32,6 +32,18 @@ module BoshReleaseDiff::Comparators
         @context = context
       end
 
+      def name
+        @rel_prop.name if @rel_prop
+      end
+
+      def has_default_value?
+        @rel_prop.has_default_value? if @rel_prop
+      end
+
+      def default_value
+        @rel_prop.default_value if @rel_prop
+      end
+
       # Considered changed when release property is 
       # removed/added or its default value does not match.
       def changes
@@ -95,6 +107,14 @@ module BoshReleaseDiff::Comparators
         @prev_dep_man_prop = prev_dep_man_prop
         @index = index
         @context = context
+      end
+
+      def name
+        @dep_man_prop.name if @dep_man_prop
+      end
+
+      def value
+        @dep_man_prop.value if @dep_man_prop
       end
 
       # Considered changed when dep manifest property is 

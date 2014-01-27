@@ -57,6 +57,10 @@ module BoshReleaseDiff::Comparators
         @context = context
       end
 
+      def name
+        @job.name if @job
+      end
+
       def changes
         changes = []
         if @prev_job && !@job

@@ -24,6 +24,10 @@ module BoshReleaseDiff::Comparators
         @context = context
       end
 
+      def name
+        @pkg.name if @pkg
+      end
+
       def changes
         changes = []
         if @prev_pkg && !@pkg
