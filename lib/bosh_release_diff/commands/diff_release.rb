@@ -3,6 +3,7 @@ require "bosh_release_diff/release/tar_reader"
 require "bosh_release_diff/deployment_manifest/file_reader"
 require "bosh_release_diff/comparators/release"
 require "bosh_release_diff/commands/no_double_nl_ui"
+require "bosh_release_diff/commands/task_duration"
 
 module BoshReleaseDiff::Commands
   class DiffRelease
@@ -16,29 +17,46 @@ module BoshReleaseDiff::Commands
     def run(release_tar_paths, deployment_manifest_paths)
       @ui.nl
 
+      releases_extraction = TaskDuration.new.tap(&:start)
+
       @logger.debug("Reading releases")
       releases = release_tar_paths.map do |path|
         BoshReleaseDiff::Release::TarReader.new(path, @logger).read
       end
 
+      releases_extraction.end
+
       if releases.empty?
         @ui.say("Must specify at least one release")
         return
       else
+        @ui.say("Extracted releases in #{releases_extraction.duration_secs} sec(s)")
+        @ui.nl
+
         @ui.say("Using releases: #{releases.map(&:detailed_name).join(", ")}")
         @ui.nl
       end
+
+      deployment_manifests_extraction = TaskDuration.new.tap(&:start)
 
       @logger.debug("Reading deployment manifests")
       deployment_manifests = deployment_manifest_paths.map do |path|
         BoshReleaseDiff::DeploymentManifest::FileReader.new(path, @logger).read
       end
 
+      deployment_manifests_extraction.end
+
       if deployment_manifests.any?
+        @ui.say("Extracted deployment manifests in #{
+          deployment_manifests_extraction.duration_secs} sec(s)")
+        @ui.nl
+
         @ui.say("Using deployment manifests: #{
           deployment_manifests.map(&:detailed_name).join(", ")}")
         @ui.nl
       end
+
+      compare = TaskDuration.new.tap(&:start)
 
       @logger.debug("Starting to compare")
       release_comparator = \
@@ -54,6 +72,9 @@ module BoshReleaseDiff::Commands
 
         show_job_result(job_result)
       end
+
+      compare.end
+      @ui.say("Compared in #{compare.duration_secs} sec(s)")
 
     ensure
       @logger.debug("Finished")
