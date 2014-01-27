@@ -1,7 +1,7 @@
 # encoding: UTF-8
-require "bosh_release_diff/release"
-require "bosh_release_diff/deployment_manifest"
-require "bosh_release_diff/comparators"
+require "bosh_release_diff/release/tar_reader"
+require "bosh_release_diff/deployment_manifest/file_reader"
+require "bosh_release_diff/comparators/release"
 require "bosh_release_diff/commands/no_double_nl_ui"
 
 module BoshReleaseDiff::Commands
