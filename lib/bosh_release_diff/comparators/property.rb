@@ -44,10 +44,14 @@ module BoshReleaseDiff::Comparators
         end
 
         if (a = @prev_rel_prop) && (b = @rel_prop)
-          if a.has_default_value? != b.has_default_value?
-            changes << :property_default_presence
-          elsif a.has_default_value? # both a&b have default values
-            if (a.default_value != b.default_value)
+          if a.has_default_value? && !b.has_default_value?
+            changes << :property_default_removed
+          elsif !a.has_default_value? && b.has_default_value?
+            changes << :property_default_added
+          end
+
+          if a.has_default_value? && b.has_default_value?
+            if a.default_value != b.default_value
               changes << :property_default_value
             end
           end

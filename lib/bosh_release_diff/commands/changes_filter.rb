@@ -12,7 +12,8 @@ module BoshReleaseDiff::Commands
     PROPERTY = [
       :property_added,
       :property_removed,
-      :property_default_presence,
+      :property_default_added,
+      :property_default_removed,
       :property_default_value,
     ].freeze
 
