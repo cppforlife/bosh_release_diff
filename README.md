@@ -36,6 +36,12 @@ Focus only on the changes:
 bundle exec bosh diff release cf-147.tgz cf-148.tgz --changes job_added,property_added
 ```
 
+Filter down by values:
+
+```
+bundle exec bosh diff release cf-147.tgz cf-148.tgz --values job_name=uaa,property_name=~nats
+```
+
 Include one or more deployment manifests
 for easier cross referencing of properties:
 
@@ -47,14 +53,16 @@ Misc:
 
 ```
 bundle exec bosh diff release cf-147.tgz --debug
-bundle exec bosh diff release cf-147.tgz --jobs cloud_controller,uaa
 bundle exec bosh diff release cf-147.tgz --packages
 ```
 
 
 ## Example output
 
+Cross-referencing deployment manifest property values with release properties:
+
 ```
+$ bundle exec bosh diff release ~/Downloads/cf-154.1-dev.tgz ~/cf.yml
 ...
 
 - nats
@@ -100,5 +108,38 @@ bundle exec bosh diff release cf-147.tgz --packages
   - syslog_aggregator.port (The port used by the syslog_aggregator job.)
     ∟ [cf-release/154.1-dev] present; no default
       ∟ [nats@cf.yml] set to 54321
+```
 
+Finding which properties were added in a new release version without defaults:
+
+```
+$ bundle exec bosh diff release ~/Downloads/cf-147.tgz ~/Downloads/cf-154.tgz \
+  --changes property_added                                                    \
+  --values job_name=gorouter,property_has_default_value=false
+
+WARNING: loading local plugin: lib/bosh/cli/commands/diff_release.rb
+
+Extracted releases in 11 sec(s)
+
+Using releases: cf/147 (07e0aa91*), cf/154 (52777d46*)
+
+Jobs (aka job templates):
+- gorouter
+  ∟ [cf/147] present; 13 prop(s), 3 package(s)
+  ∟ [cf/154] present; 15 prop(s), 4 package(s)
+
+  Properties:
+  - loggregator_endpoint.host (The host used to emit messages to the Loggregator)
+    ∟ [cf/147] not present
+    ∟ [cf/154] added; no default
+
+  - loggregator_endpoint.shared_secret (The key used to sign log messages)
+    ∟ [cf/147] not present
+    ∟ [cf/154] added; no default
+
+  - nats.machines (IP of each NATS cluster member.)
+    ∟ [cf/147] not present
+    ∟ [cf/154] added; no default
+
+Compared in 0 sec(s)
 ```
