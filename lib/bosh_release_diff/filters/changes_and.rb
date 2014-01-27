@@ -1,4 +1,7 @@
 require "bosh_release_diff/filters/abstract"
+require "bosh_release_diff/comparators/job"
+require "bosh_release_diff/comparators/property"
+require "bosh_release_diff/comparators/package"
 
 module BoshReleaseDiff::Filters
   class ChangesAnd
@@ -27,24 +30,26 @@ module BoshReleaseDiff::Filters
   end
 
   class Change
+    c = BoshReleaseDiff::Comparators
+
     CHANGE_CLASS_TO_CHANGES = {
-      "BoshReleaseDiff::Comparators::Job::ReleaseJobChange" => [
+      c::Job::ReleaseJobChange => [
         :job_added,
         :job_removed,
       ],
-      "BoshReleaseDiff::Comparators::Property::ReleasePropertyChange" => [
+      c::Property::ReleasePropertyChange => [
         :property_added,
         :property_removed,
         :property_default_added,
         :property_default_removed,
         :property_default_value,
       ],
-      "BoshReleaseDiff::Comparators::Property::DeploymentManifestPropertyChange" => [
+      c::Property::DeploymentManifestPropertyChange => [
         :dep_man_property_added,
         :dep_man_property_removed,
         :dep_man_property_value,
       ],
-      "BoshReleaseDiff::Comparators::Job::ReleasePackageChange" => [
+      c::Package::ReleasePackageChange => [
         :package_added,
         :package_removed,
       ],
@@ -60,7 +65,7 @@ module BoshReleaseDiff::Filters
     end
 
     def matches?(change)
-      if changes = CHANGE_CLASS_TO_CHANGES[change.class.name]
+      if changes = CHANGE_CLASS_TO_CHANGES[change.class]
         if changes.include?(@filter)
           return change.changes.include?(@filter)
         end

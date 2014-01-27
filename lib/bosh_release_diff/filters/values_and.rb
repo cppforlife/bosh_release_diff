@@ -1,4 +1,7 @@
 require "bosh_release_diff/filters/abstract"
+require "bosh_release_diff/comparators/job"
+require "bosh_release_diff/comparators/property"
+require "bosh_release_diff/comparators/package"
 
 module BoshReleaseDiff::Filters
   class ValuesAnd
@@ -15,23 +18,25 @@ module BoshReleaseDiff::Filters
 
     MATCH_OP = "=~".freeze
 
+    c = BoshReleaseDiff::Comparators
+
     # Instead of checking `respond_to?(subject)` against a comparator
     # only expose controlled number of subjects.
     CHANGE_CLASS_TO_SUBJECTS = {
-      "BoshReleaseDiff::Comparators::Job::ReleaseJobChange" => {
+      c::Job::ReleaseJobChange => {
         "job_name" => "name",
       },
-      "BoshReleaseDiff::Comparators::Property::ReleasePropertyChange" => {
+      c::Property::ReleasePropertyChange => {
         "property_name"              => "name",
         "property_has_default_value" => "has_default_value?",
         "property_has_default_value" => "has_default_value?",
         "property_default_value"     => "default_value",
       },
-      "BoshReleaseDiff::Comparators::Property::DeploymentManifestPropertyChange" => {
+      c::Property::DeploymentManifestPropertyChange => {
         "dep_man_property_name"  => "name",
         "dep_man_property_value" => "value",
       },
-      "BoshReleaseDiff::Comparators::Job::ReleasePackageChange" => {
+      c::Package::ReleasePackageChange => {
         "package_name" => "name",
       },
     }.freeze
@@ -57,7 +62,7 @@ module BoshReleaseDiff::Filters
     end
 
     def matches?(change)
-      if subjects = CHANGE_CLASS_TO_SUBJECTS[change.class.name]
+      if subjects = CHANGE_CLASS_TO_SUBJECTS[change.class]
         if method = subjects[@subject]
           actual_value = change.public_send(method)
           return !!actual_value.send(@operator, @expected_value)
