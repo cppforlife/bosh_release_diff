@@ -24,24 +24,18 @@ module BoshReleaseDiff::Comparators
       ])
     end
 
+    def all_changes
+      changes
+    end
+
     class ReleasePropertyChange
+      attr_reader :context
+
       def initialize(rel_prop, index, prev_rel_prop, context)
         @rel_prop = rel_prop
         @prev_rel_prop = prev_rel_prop
         @index = index
         @context = context
-      end
-
-      def name
-        @rel_prop.name if @rel_prop
-      end
-
-      def has_default_value?
-        @rel_prop.has_default_value? if @rel_prop
-      end
-
-      def default_value
-        @rel_prop.default_value if @rel_prop
       end
 
       # Considered changed when release property is 
@@ -101,6 +95,8 @@ module BoshReleaseDiff::Comparators
     end
 
     class DeploymentManifestPropertyChange
+      attr_reader :context
+
       def initialize(rel_prop, dep_man_prop, index, prev_dep_man_prop, context)
         @rel_prop = rel_prop
         @dep_man_prop = dep_man_prop
@@ -109,15 +105,7 @@ module BoshReleaseDiff::Comparators
         @context = context
       end
 
-      def name
-        @dep_man_prop.name if @dep_man_prop
-      end
-
-      def value
-        @dep_man_prop.value if @dep_man_prop
-      end
-
-      # Considered changed when dep manifest property is 
+      # Considered changed when dep manifest property is
       # removed/added or its value does not match.
       def changes
         changes = []

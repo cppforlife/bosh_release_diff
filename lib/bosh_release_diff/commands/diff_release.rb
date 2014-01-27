@@ -63,15 +63,29 @@ module BoshReleaseDiff::Commands
         BoshReleaseDiff::Comparators::Release.from(
           releases, deployment_manifests, @logger)
 
-      @ui.say("Jobs (aka job templates):")
-      release_comparator.job_results.each do |job_result|
-        if !comparator_filter.matches?(job_result)
-          @logger.debug("Job #{job_result.name} does not match")
-          next
-        end
-
-        show_job_result(job_result)
-      end
+      presenter = ComparatorPresenter.new(@ui, comparator_filter, @logger)
+      presenter.present(release_comparator.job_results, {
+        title: "Jobs (aka job templates)",
+        title_highlight: false,
+        has_description: false,
+        visible: true,
+        results: {
+          property_results: {
+            title: "Properties",
+            title_highlight: true,
+            has_description: true,
+            visible: true,
+            results: [],
+          },
+          package_results: {
+            title: "Packages",
+            title_highlight: false,
+            has_description: false,
+            visible: show_packages,
+            results: [],
+          },
+        },
+      })
 
       compare.end
       @ui.say("Compared in #{compare.duration_secs} sec(s)")
@@ -82,32 +96,6 @@ module BoshReleaseDiff::Commands
 
     private
 
-    def show_job_result(job_result)
-      @ui.say("- #{job_result.name}")
-
-      job_result.changes.each do |change, d|
-        @ui.say("  #{" "*2*d}#{ComparatorPresenter::TICK}" + change.description(show_packages))
-      end
-
-      @ui.nl
-
-      presenter = ComparatorPresenter.new(@ui, comparator_filter, @logger)
-
-      presenter.present(job_result.property_results, {
-        title: "Properties",
-        title_highlight: true,
-        has_description: true,
-      })
-
-      presenter.present(job_result.package_results, {
-        title: "Packages",
-        title_highlight: false,
-        has_description: false,
-      }) if show_packages
-
-      @ui.nl
-    end
-
     class ComparatorPresenter
       TICK = "∟ "
 
@@ -117,12 +105,10 @@ module BoshReleaseDiff::Commands
         @logger = logger
       end
 
-      def present(comparator, opts)
-        if comparator.empty?
-          @ui.say("  #{opts.fetch(:title)}: none")
-          return
-        end
+      def present(comparator, opts, depth=0)
+        return unless opts.fetch(:visible)
 
+        indent = " "*2*depth
         has_changes = false
 
         comparator.each do |result|
@@ -131,23 +117,29 @@ module BoshReleaseDiff::Commands
             next
           elsif !has_changes
             has_changes = true
-            @ui.say("  #{opts.fetch(:title)}:")
+            @ui.say("#{indent}#{opts.fetch(:title)}:")
           end
 
           name = result.name
           name = name.make_yellow   if opts.fetch(:title_highlight)
           desc = result.description if opts.fetch(:has_description)
-          @ui.say("  - #{name}#{" (#{desc})" if desc}")
+          @ui.say("#{indent}- #{name}#{" (#{desc})" if desc}")
 
           result.changes.each do |change, d|
-            @ui.say("    #{" "*2*d}#{TICK}" + change.description)
+            @ui.say("#{indent}  #{" "*2*d}#{TICK}" + change.description)
           end
 
           @ui.nl
+
+          opts.fetch(:results).each do |comparator_name, comparator_opts|
+            present(result.public_send(comparator_name), comparator_opts, depth+1)
+          end
         end
 
-        if !has_changes
-          @ui.say("  #{opts.fetch(:title)}: filtered out")
+        if comparator.empty?
+          @ui.say("#{indent}#{opts.fetch(:title)}: none")
+        elsif !has_changes
+          @ui.say("#{indent}#{opts.fetch(:title)}: filtered out")
         end
 
         @ui.nl

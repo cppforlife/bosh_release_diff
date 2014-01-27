@@ -49,16 +49,21 @@ module BoshReleaseDiff::Comparators
       Perms.new([[@rel_jobs, ReleaseJobChange]])
     end
 
+    def all_changes
+      job_arr      = changes.to_a
+      property_arr = property_results.map(&:all_changes).map(&:to_a).flatten
+      package_arr  =  package_results.map(&:all_changes).map(&:to_a).flatten
+      job_arr + property_arr + package_arr
+    end
+
     class ReleaseJobChange
+      attr_reader :context
+
       def initialize(job, index, prev_job, context)
         @job = job
         @prev_job = prev_job
         @index = index
         @context = context
-      end
-
-      def name
-        @job.name if @job
       end
 
       def changes
@@ -71,7 +76,7 @@ module BoshReleaseDiff::Comparators
         changes
       end
 
-      def description(show_packages)
+      def description
         str = "[#{@context.find_kind_of('Release').contextual_name}] "
 
         if @prev_job && @job
@@ -86,7 +91,7 @@ module BoshReleaseDiff::Comparators
 
         if @job
           str += "; #{@job.properties.size} prop(s)"
-          str += ", #{@job.packages.size} package(s)" if show_packages
+          str += ", #{@job.packages.size} package(s)"
         end
 
         str

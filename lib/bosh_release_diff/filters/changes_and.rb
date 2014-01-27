@@ -65,12 +65,11 @@ module BoshReleaseDiff::Filters
     end
 
     def matches?(change)
-      if changes = CHANGE_CLASS_TO_CHANGES[change.class]
-        if changes.include?(@filter)
-          return change.changes.include?(@filter)
-        end
+      unless changes = CHANGE_CLASS_TO_CHANGES[change.class]
+        raise ArgumentError, "unknown change class #{change.class.inspect}"
       end
-      true
+
+      changes.include?(@filter) && change.changes.include?(@filter)
     end
   end
 end

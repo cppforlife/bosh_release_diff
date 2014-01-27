@@ -16,16 +16,18 @@ module BoshReleaseDiff::Comparators
       Perms.new([[@packages, ReleasePackageChange]])
     end
 
+    def all_changes
+      changes
+    end
+
     class ReleasePackageChange
+      attr_reader :context
+
       def initialize(pkg, index, prev_pkg, context)
         @pkg = pkg
         @prev_pkg = prev_pkg
         @index = index
         @context = context
-      end
-
-      def name
-        @pkg.name if @pkg
       end
 
       def changes

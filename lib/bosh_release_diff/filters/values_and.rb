@@ -18,25 +18,23 @@ module BoshReleaseDiff::Filters
 
     MATCH_OP = "=~".freeze
 
-    c = BoshReleaseDiff::Comparators
+    r  = BoshReleaseDiff::Release
+    dm = BoshReleaseDiff::DeploymentManifest
 
-    # Instead of checking `respond_to?(subject)` against a comparator
-    # only expose controlled number of subjects.
     CHANGE_CLASS_TO_SUBJECTS = {
-      c::Job::ReleaseJobChange => {
+      r::Job => {
         "job_name" => "name",
       },
-      c::Property::ReleasePropertyChange => {
+      r::Property => {
         "property_name"              => "name",
-        "property_has_default_value" => "has_default_value?",
         "property_has_default_value" => "has_default_value?",
         "property_default_value"     => "default_value",
       },
-      c::Property::DeploymentManifestPropertyChange => {
+      dm::Property => {
         "dep_man_property_name"  => "name",
         "dep_man_property_value" => "value",
       },
-      c::Package::ReleasePackageChange => {
+      r::Package => {
         "package_name" => "name",
       },
     }.freeze
@@ -45,11 +43,16 @@ module BoshReleaseDiff::Filters
       @all_subjects ||= CHANGE_CLASS_TO_SUBJECTS.map { |_,v| v.keys }.flatten
     end
 
+    def self.class_for_subject(subject)
+      CHANGE_CLASS_TO_SUBJECTS.map { |k, v| return k if v.keys.include?(subject) }
+      raise UnknownSubjectError, "subject is an unknown item #{subject.inspect}"
+    end
+
     # e.g. new("property_has_default_value", "==", true)
     #      new("dep_man_property_value",     "!=", true)
     def initialize(subject, operator, expected_value)
       unless self.class.all_subjects.include?(subject)
-        raise UnknownSubjectError, "subject is an unknown item"
+        raise UnknownSubjectError, "subject is an unknown item #{subject.inspect}"
       end
 
       @subject = subject
@@ -59,16 +62,23 @@ module BoshReleaseDiff::Filters
       if @operator == MATCH_OP
         @expected_value = Regexp.new(@expected_value)
       end
+
+      # Resolve class name once
+      @klass = self.class.class_for_subject(@subject)
+      @klass_name = @klass.name.split("::").last
+
+      # Actual Ruby method to call on an instance of resolved class
+      @method = CHANGE_CLASS_TO_SUBJECTS[@klass][@subject]
     end
 
     def matches?(change)
-      if subjects = CHANGE_CLASS_TO_SUBJECTS[change.class]
-        if method = subjects[@subject]
-          actual_value = change.public_send(method)
-          return !!actual_value.send(@operator, @expected_value)
-        end
-      end
-      true
+      # Some changes do not have enough context
+      # to determine the actual value
+      return false unless value_source = change.context.find_kind_of(@klass_name)
+
+      actual_value = value_source.public_send(@method)
+
+      !!actual_value.public_send(@operator, @expected_value)
     end
   end
 
