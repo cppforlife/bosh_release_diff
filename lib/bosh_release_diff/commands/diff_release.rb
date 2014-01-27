@@ -126,7 +126,7 @@ module BoshReleaseDiff::Commands
         end
 
         if !has_changes
-          @ui.say("  #{opts.fetch(:title)}: no changes")
+          @ui.say("  #{opts.fetch(:title)}: filtered out")
         end
 
         @ui.nl
